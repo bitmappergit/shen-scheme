@@ -6,21 +6,20 @@
     ((_ location message obj ...)
      (error location message obj ...))))
 
+(define raise-error error)
 (define *shen-globals* (make-hashtable symbol-hash eq?))
 
 (define (shen-global-parameter-set! var parameter)
-  (symbol-hashtable-set! *shen-globals* var parameter))
+  (hashtable-set! *shen-globals* var parameter))
 
 (define (shen-global-set! var value)
-  (let ((cell (symbol-hashtable-cell *shen-globals* var #f)))
-    (if (cdr cell)
-        ((cdr cell) value)
-        (set-cdr! cell (make-parameter value)))))
+  (hashtable-set! *shen-globals* var value)
+  value)
 
 (define *hash-table-default* (string-append "_" "-"))
 
 (define (shen-global-get var default)
-  (let ((res (symbol-hashtable-ref *shen-globals* var *hash-table-default*)))
+  (let ((res (hashtable-ref *shen-globals* var *hash-table-default*)))
     (if (eq? res *hash-table-default*)
         (default var)
         (res))))
@@ -34,12 +33,12 @@
          (string->symbol (substring str 3 len))
          sym))
       sym))
-
+(define-condition-type &format &condition
+  make-format-condition format-condition?)
 (define (error-message e)
   (let* ((msg (condition-message e))
          (irritants (if (irritants-condition? e) (condition-irritants e) '())))
-    (cond ((format-condition? e)
-           (apply format msg (map kl-var-clean irritants)))
+    (cond ((format-condition? e) (apply format msg (map kl-var-clean irritants)))
           ((null? irritants) msg)
           (else (format "~a: ~{~s~}" msg irritants)))))
 
@@ -49,10 +48,10 @@
       '*unknown-location*))
 
 (define (full-path-for-file filename)
-  (if (path-absolute? filename)
+  (if (absolute-path? filename)
       filename
-      (string-append (current-directory)
-                     (string (directory-separator))
+      (string-append (path->string (current-directory))
+                     ;"/";(string (directory-separator))
                      filename)))
 
 (define (open-binary-input-file filename)
@@ -65,18 +64,13 @@
   (+ (time-second t)
      (/ (time-nanosecond t) 1e+9)))
 
-(define (should-flush? p)
-  (let ((name (port-name p)))
-    (or (equal? name "stdout") (equal? name "stderr"))))
-
-(define (write-byte byte o)
-  (put-u8 o byte)
-  (and (should-flush? o)
-       (flush-output-port o))
+(define (swrite-byte byte o)
+  (write-byte o byte)
+  (flush-output-port o)
   byte)
 
-(define (read-byte i)
-  (let ((byte (get-u8 i)))
+(define (sread-byte i)
+  (let ((byte (read-byte i)))
     (if (eof-object? byte)
         -1
         byte)))
@@ -91,11 +85,11 @@
 
 (define (read-file-as-bytelist filename)
   (let* ((in (open-file-input-port (full-path-for-file filename)))
-         (bytes (get-bytevector-all in)))
+         (bytes (port->bytes in)))
     (close-input-port in)
     (if (eof-object? bytes)
         '()
-        (bytevector->u8-list bytes))))
+        (bytes->list bytes))))
 
 (define (hashtable-fold ht f init)
   (let-values (((keys values) (hashtable-entries ht)))

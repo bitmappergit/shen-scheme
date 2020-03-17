@@ -27,7 +27,7 @@
   (let ((result (/ x y)))
     (if (integer? result)
         result
-        (inexact result))))
+        (exact->inexact result))))
 
 ;; Strings
 ;;
@@ -44,19 +44,32 @@
 
 ;; Assignments
 ;;
-
+#|
 (define (kl:set var val)
   (shen-global-set! var val)
   val)
-
+|#
 (define (get-failure-error var)
   (raise-error 'value "variable has no value" var))
 
 (define (get-failure-default _var)
   *hash-table-default*)
 
+#|
 (define (kl:value var)
   (shen-global-get var get-failure-error))
+|#
+
+;(define *shen-globals* (make-hashtable))
+;(define *shen-globals* (make-hashtable symbol-hash eq?))
+(define (kl:set key val)
+  (hashtable-set! *shen-globals* key val)
+  val)
+
+(define (kl:value key)
+  (hashtable-ref *shen-globals*
+                  key
+                  (lambda () (error "variable has no value:" key))))
 
 ;; Error Handling
 ;;
@@ -136,10 +149,10 @@
    (else (raise-error 'close "invalid stream" stream))))
 
 (define (kl:write-byte byte o)
-  (write-byte byte o))
+  (swrite-byte byte o))
 
 (define (kl:read-byte i)
-  (read-byte i))
+  (sread-byte i))
 
 ;; Time
 ;;
@@ -157,7 +170,7 @@
   (make-hashtable equal-hash equal? size))
 
 (define (value/or var default)
-  (let ((result (shen-global-get var get-failure-default)))
+  (let ((result (kl:value var)))
     (if (eq? result *hash-table-default*)
         (default)
         result)))
@@ -183,7 +196,7 @@
             elt))))
 
 (define symbol-character?
-  (let ((specials (string->list "=*/+-_?$!@~><&%{}:;`#'.")))
+  (let ((specials (string->list "=*/+-_?$!@~><&{}%:;`#'.")))
     (lambda (c)
       (or (char-alphabetic? c)
           (char-numeric? c)
@@ -201,3 +214,8 @@
        (not (char-numeric? (string-ref s 0)))
        (symbol-character? (string-ref s 0))
        (string-all? symbol-character? s)))
+
+(define (hashtable-values ht)
+  (let-values ([(keys vals) (hashtable-entries ht)])
+    vals))
+  

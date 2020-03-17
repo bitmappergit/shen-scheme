@@ -14,6 +14,5 @@
 (define shen-scheme.run-shen
   Args -> (shen-scheme.handle-launcher-result
            (shen.x.launcher.launch-shen Args)))
-
-(define shen-scheme.find-library
-  Name -> (scm.string-append (scm.get-shen-scheme-home-path) "/libraries/" Name))
+\\(define shen-scheme.find-library
+\\  Name -> (scm.string-append (scm.get-shen-scheme-home-path) "/libraries/" Name))

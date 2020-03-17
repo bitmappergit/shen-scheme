@@ -23,8 +23,7 @@
                   (let _ (if (scm.textual-port? Sink)
                              (scm.put-string Sink String)
                              (scm.put-bytevector Sink (scm.string->utf8 String)))
-                       _ (scm.and (scm.should-flush? Sink)
-                                  (scm.flush-output-port Sink))
+                       _ (scm.flush-output-port Sink)
                     String)
                   (/. E String)))
 

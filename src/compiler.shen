@@ -7,7 +7,7 @@
                      string-ref string-length substring list kl
                      eq? eqv? equal? scm. scm.import import *toplevel*
                      letrec let* scm.letrec scm.with-input-from-string scm.read
-                     scm.define scm.goto-label scm.begin
+                     scm.define scm.goto-label scm.begin rkt
                      scm.value/or scm.get/or scm.<-vector/or scm.<-address/or]
 
 (define initialize-compiler
@@ -105,6 +105,7 @@
   [scm.define Name Expr] Scope -> [define Name (compile-expression Expr Scope)] where (symbol? Name)
   [scm. Code] _ -> (scm.with-input-from-string Code (freeze (scm.read))) where (string? Code)
   [scm. Form] _ -> (emit-scm-form Form)
+  [rkt Form] _ -> Form
   [scm. kl : Name] _ -> (intern (cn "kl:" (str Name))) where (symbol? Name)
   [Op | Args] Scope -> (emit-application Op Args Scope)
   X _ -> X                      \* literal *\

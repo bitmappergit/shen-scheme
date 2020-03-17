@@ -229,8 +229,19 @@
 
 (define loader-body
   -> (@s
-"(import (chezscheme))
+"(module shen-rkt racket
+  (require rnrs/io/ports-6)
+  (require rnrs/hashtables-6)
+  (require rnrs/conditions-6)
+  (require rnrs/exceptions-6)
+  (require rnrs/arithmetic/fixnums-6)
+  (require srfi/19)
+  (require rnrs/bytevectors-6)
 
+  (read-curly-brace-as-paren #f)
+  (print-mpair-curly-braces #f)
+  (define-namespace-anchor anchor)
+  (define (here-namespace) (namespace-anchor->namespace anchor))
 "
 
 (globals-definitions (value _scm.*static-globals*))
@@ -242,44 +253,44 @@
 
 ")
 
-(include c#34;src/chez-prelude.scmc#34;)
-(include c#34;src/primitives.scmc#34;)
+  (include c#34;src/chez-prelude.scmc#34;)
+  (include c#34;src/primitives.scmc#34;)
 
-(include c#34;compiled/overrides.scmc#34;)
-(include c#34;compiled/shen-scheme-extensions.scmc#34;)
+  (include c#34;compiled/overrides.scmc#34;)
+  (include c#34;compiled/shen-scheme-extensions.scmc#34;)
 
-(include c#34;compiled/compiler.scmc#34;)
-(include c#34;compiled/factorize-patterns.scmc#34;)
-(include c#34;compiled/toplevel.scmc#34;)
-(include c#34;compiled/core.scmc#34;)
-(include c#34;compiled/sys.scmc#34;)
-(include c#34;compiled/dict.scmc#34;)
-(include c#34;compiled/sequent.scmc#34;)
-(include c#34;compiled/yacc.scmc#34;)
-(include c#34;compiled/reader.scmc#34;)
-(include c#34;compiled/prolog.scmc#34;)
-(include c#34;compiled/track.scmc#34;)
-(include c#34;compiled/load.scmc#34;)
-(include c#34;compiled/writer.scmc#34;)
-(include c#34;compiled/macros.scmc#34;)
-(include c#34;compiled/declarations.scmc#34;)
-(include c#34;compiled/types.scmc#34;)
-(include c#34;compiled/t-star.scmc#34;)
-(include c#34;compiled/init.scmc#34;)
-(include c#34;compiled/extension-features.scmc#34;)
-(include c#34;compiled/extension-launcher.scmc#34;)
-(include c#34;compiled/extension-factorise-defun.scmc#34;)
-(include c#34;compiled/extension-programmable-pattern-matching.scmc#34;)
+  (include c#34;compiled/compiler.scmc#34;)
+  (include c#34;compiled/factorize-patterns.scmc#34;)
+  (include c#34;compiled/toplevel.scmc#34;)
+  (include c#34;compiled/core.scmc#34;)
+  (include c#34;compiled/sys.scmc#34;)
+  (include c#34;compiled/dict.scmc#34;)
+  (include c#34;compiled/sequent.scmc#34;)
+  (include c#34;compiled/yacc.scmc#34;)
+  (include c#34;compiled/reader.scmc#34;)
+  (include c#34;compiled/prolog.scmc#34;)
+  (include c#34;compiled/track.scmc#34;)
+  (include c#34;compiled/load.scmc#34;)
+  (include c#34;compiled/writer.scmc#34;)
+  (include c#34;compiled/macros.scmc#34;)
+  (include c#34;compiled/declarations.scmc#34;)
+  (include c#34;compiled/types.scmc#34;)
+  (include c#34;compiled/t-star.scmc#34;)
+  (include c#34;compiled/init.scmc#34;)
+  (include c#34;compiled/extension-features.scmc#34;)
+  (include c#34;compiled/extension-launcher.scmc#34;)
+  (include c#34;compiled/extension-factorise-defun.scmc#34;)
+  (include c#34;compiled/extension-programmable-pattern-matching.scmc#34;)
 
-(define initialize-shen
-  (let ((initialized #f))
-    (lambda ()
-      (if (not initialized)
-          (begin
-            (define-top-level-value 'get-shen-scheme-home-path (foreign-procedure c#34;get_shen_scheme_home_pathc#34; () string))
-            (include c#34;src/init.scmc#34;)
-            (include c#34;compiled/shen-scheme-init.scmc#34;)
-            (set! initialized #t))))))
+  (define initialize-shen
+    (let ((initialized #f))
+      (lambda ()
+        (if (not initialized)
+            (begin
+              (include c#34;src/init.scmc#34;)
+              (include c#34;compiled/shen-scheme-init.scmc#34;)
+              (set! initialized #t))
+            '()))))
 "))
 
 (define write-string-to-file
@@ -296,13 +307,12 @@
                        Filename))
 
 (define initialization-body
-  -> "(suppress-greeting #t)
-
-(scheme-start
-  (lambda fns
-    (initialize-shen)
-    (kl:shen-scheme.run-shen fns)
-    (exit 0)))")
+  -> "
+  (module* main #f
+    (parameterize ([current-namespace (here-namespace)])
+        (initialize-shen)
+        (kl:shen-scheme.run-shen (cons c#34;shen-schemec#34; (vector->list (current-command-line-arguments))))
+        (exit 0))))")
 
 (define program-definition
   -> (make-string "~A~%~A~%~A~%"
@@ -335,8 +345,8 @@
                           Exports
                           (loader-body))))
 
-(define shen-license
-  -> ";; Copyright (c) 2015, Mark Tarver
+(define shen-license -> ";#lang racket
+;; Copyright (c) 2015, Mark Tarver
 ;;
 ;; All rights reserved.
 ;;
@@ -361,10 +371,12 @@
 ;; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+;(provide (all-defined-out))
 ")
 
-(define shen-scheme-license
-  -> ";; Copyright (c) 2012-2019 Bruno Deferrari.  All rights reserved.
+(define shen-scheme-license -> ";#lang racket
+;; Copyright (c) 2012-2019 Bruno Deferrari.  All rights reserved.
 ;; BSD 3-Clause License: http://opensource.org/licenses/BSD-3-Clause
 
+;(provide (all-defined-out))
 ")
