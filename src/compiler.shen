@@ -105,7 +105,8 @@
   [scm.define Name Expr] Scope -> [define Name (compile-expression Expr Scope)] where (symbol? Name)
   [scm. Code] _ -> (scm.with-input-from-string Code (freeze (scm.read))) where (string? Code)
   [scm. Form] _ -> (emit-scm-form Form)
-  [rkt Form] _ -> Form
+  [rkt Value] _ -> Value
+  [rkt | Form] _ -> Form
   [scm. kl : Name] _ -> (intern (cn "kl:" (str Name))) where (symbol? Name)
   [Op | Args] Scope -> (emit-application Op Args Scope)
   X _ -> X                      \* literal *\
